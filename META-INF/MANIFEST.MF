@@ -1,0 +1,14 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: JSON Config
+Bundle-SymbolicName: com.oddnut.jsonconfig
+Bundle-Version: 1.0.0
+Bundle-Activator: com.oddnut.jsonconfig.ConfigManager
+Bundle-Vendor: ODDNUT
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Import-Package: org.codehaus.jackson;version="1.3.0",
+ org.codehaus.jackson.map;version="1.3.0",
+ org.codehaus.jackson.map.type;version="1.3.0",
+ org.codehaus.jackson.type;version="1.3.0",
+ org.osgi.framework;version="1.3.0",
+ org.slf4j;version="1.5.11"
