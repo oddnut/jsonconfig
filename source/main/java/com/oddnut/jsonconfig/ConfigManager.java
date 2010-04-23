@@ -56,9 +56,13 @@ public class ConfigManager implements BundleActivator {
 		
 		String configPath = bc.getProperty(JSON_CONFIG_DIR_PROPERTY);
 		if (configPath == null)
-			bc.getProperty(CONFIGURATION_AREA_PROPERTY);
+			configPath = bc.getProperty(CONFIGURATION_AREA_PROPERTY);
 		if (configPath == null)
 			configPath = bc.getProperty(CONFIGURATION_AREA_DEFAULT_PROPERTY);
+		
+		// the osgi.configuration.area can be a file:/path/to/dir sort of thing, so remove "file:"
+		if (configPath.startsWith("file:"))
+			configPath = configPath.substring(5); // 5 == "file:".length()
 		
 		configDir = new File(configPath);
 		
