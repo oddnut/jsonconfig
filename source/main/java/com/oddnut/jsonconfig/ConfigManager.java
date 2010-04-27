@@ -162,11 +162,11 @@ public class ConfigManager implements BundleActivator {
 		Class<?> type = null;
 		try {
 			
-			log.info("loading class {} for config mapping.", className);
+			log.debug("loading class {} for config mapping.", className);
 			type = bundleContext.getBundle().loadClass(className);
 		}
-		catch (Exception e) {
-			log.info("Couldn't find class with name " + className);
+		catch (Throwable e) {
+			log.debug("Couldn't find class with name " + className);
 			// will return null;
 		}
 		
