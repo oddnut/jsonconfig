@@ -14,7 +14,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.node.ObjectNode;
 import org.codehaus.jackson.type.TypeReference;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
@@ -39,7 +41,6 @@ public class ConfigManager implements BundleActivator {
 	private static Logger log = LoggerFactory.getLogger(ConfigManager.class);
 
 	// *** Instance Members ***
-	private BundleContext bundleContext;
 	private File configDir;
 	private Map<String, Config> configs;
 
@@ -51,8 +52,6 @@ public class ConfigManager implements BundleActivator {
 
 	// *** BundleActivator Methods ***
 	public void start(BundleContext bc) throws Exception {
-		
-		bundleContext = bc;
 		
 		String configPath = bc.getProperty(JSON_CONFIG_DIR_PROPERTY);
 		if (configPath == null)
@@ -80,46 +79,39 @@ public class ConfigManager implements BundleActivator {
 		
 		for (String name : filenames) {
 			
-			if ( !isConfigFile(name))
+			if ( !name.endsWith(".json")) // skip everything besides .json files
 				continue;
 			
 			Config c = new Config();
 			
 			c.file = new File(configDir, name);
 			
-			Class<?> type = findCustomType(name);
-			
-			if (type != null) {
-				try {
-					c.object = MAPPER.readValue(c.file, type);
-					log.info("Mapped Object type = {} value = {}", c.object.getClass().getCanonicalName(), c.object.toString());
-				}
-				catch (Exception e) {
-					
-					log.info("Couldn't map config to custom type " + type.getCanonicalName(), e);
-					// continue,  c.object will be null
-				}
+			try {
+				
+				c.tree = MAPPER.readValue(c.file, ObjectNode.class);
+				
+				c.map = MAPPER.readValue(c.tree.traverse(), new TypeReference<Map<String, Object>>() {});
+				
+				log.debug("Parsed config tree = ", c.tree.toString());
+			}
+			catch (Exception e) {
+				log.error("Couldn't load configuration file: " + c.file, e);
+				continue;
 			}
 			
-			if (c.object == null) {
-				try {
-					c.object = MAPPER.readValue(c.file, new TypeReference<Map<String, Object>>() {});
-					log.info("Mapped Object toString() = ", c.object.toString());
-				}
-				catch (Exception e) {
-					log.error("Couldn't load configuration file: " + c.file, e);
-					continue;
-				}
-			}
+			Properties treeProps = new Properties();
+			treeProps.put(Constants.SERVICE_PID, name);
 			
-			Properties props = new Properties();
-			props.put(Constants.SERVICE_PID, name);
+			Properties mapProps = new Properties();
+			mapProps.put(Constants.SERVICE_PID, name.substring(0, name.length() - ".json".length()));
 			
 			try {
-				if (type != null)
-					c.reg = bc.registerService(type.getCanonicalName(), c.object, props);
-				else
-					c.reg = bc.registerService(Map.class.getCanonicalName(), c.object, props);
+				c.treeReg = bc.registerService(
+						new String[] {
+							ObjectNode.class.getCanonicalName(),
+							JsonNode.class.getCanonicalName()
+						}, c.tree, treeProps);
+				c.mapReg = bc.registerService(Map.class.getCanonicalName(), c.map, mapProps);
 			}
 			catch (Exception e) {
 				log.error("Couldn't register configuration object as a service for file " + c.file, e);
@@ -135,7 +127,8 @@ public class ConfigManager implements BundleActivator {
 		
 		for (Config c : configs.values()) {
 			try {
-				c.reg.unregister();
+				c.treeReg.unregister();
+				c.mapReg.unregister();
 			}
 			catch (IllegalStateException ise) {
 				log.warn("couldn't unregister config service for config file {}", c.file);
@@ -150,33 +143,13 @@ public class ConfigManager implements BundleActivator {
 	// *** Package Methods ***
 
 	// *** Private Methods ***
-	private boolean isConfigFile(String name) {
-		
-		return name.endsWith(".json");
-	}
-	
-	private Class<?> findCustomType(String fileName) {
-		
-		String className = fileName.substring(0, fileName.length() - ".json".length());
-		
-		Class<?> type = null;
-		try {
-			
-			log.debug("loading class {} for config mapping.", className);
-			type = bundleContext.getBundle().loadClass(className);
-		}
-		catch (Throwable e) {
-			log.debug("Couldn't find class with name " + className);
-			// will return null;
-		}
-		
-		return type;
-	}
 
 	// *** Private Classes ***
 	private static class Config {
 		File file;
-		Object object;
-		ServiceRegistration reg;
+		Map<String, Object> map;
+		ServiceRegistration mapReg;
+		JsonNode tree;
+		ServiceRegistration treeReg;
 	}
 }
