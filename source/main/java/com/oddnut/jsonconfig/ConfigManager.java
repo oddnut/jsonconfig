@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.node.ObjectNode;
 import org.codehaus.jackson.type.TypeReference;
@@ -37,6 +38,9 @@ public class ConfigManager implements BundleActivator {
 	private static final String CONFIGURATION_AREA_DEFAULT_PROPERTY = "osgi.configuration.area.default";
 	
 	private static ObjectMapper MAPPER = new ObjectMapper();
+	static {
+		MAPPER.configure(JsonParser.Feature.ALLOW_COMMENTS, true);
+	}
 	
 	private static Logger log = LoggerFactory.getLogger(ConfigManager.class);
 
