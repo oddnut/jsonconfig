@@ -1,0 +1,24 @@
+apply from: "../oddnut/repositories.gradle"
+apply from: "../oddnut/osgi.gradle"
+
+version = "1.0.0"
+
+dependencies {
+	compile ":org.eclipse.osgi:3.6.1.R36x_v20100806",
+			":jackson-core-asl:1.5.2",
+			":jackson-mapper-asl:1.5.2",
+			":slf4j-api:1.5.11"
+}
+
+jar {
+	manifest {
+		setName			"JSON Config"
+		symbolicName =	"com.oddnut.jsonconfig"
+		vendor =		"ODDNUT"
+		description =	"Configure bundles using json configuration published as services"
+		version =		project.version
+		
+		instruction "Export-Package", "com.oddnut.jsonconfig;version=$version"
+		instruction "Bundle-Activator", "com.oddnut.jsonconfig.ConfigManager"
+	}
+}
